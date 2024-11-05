@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Book a Demo</title>
+    <link
+      href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div class="container mt-5">
+      <h2>Book a Demo</h2>
+      <form id="demoForm" onsubmit="return validateAndSubmitForm(event)">
+        <div class="form-group">
+          <label for="email">Email address:</label>
+          <input
+            type="email"
+            class="form-control"
+            id="email"
+            name="email"
+            required
+          />
+          <small id="emailError" class="text-danger d-none"
+            >Please enter a valid email address.</small
+          >
+        </div>
+        <div class="form-group">
+          <label for="fullName">Full Name:</label>
+          <input
+            type="text"
+            class="form-control"
+            id="fullName"
+            name="fullName"
+            required
+          />
+          <small id="fullNameError" class="text-danger d-none"
+            >Please enter your full name.</small
+          >
+        </div>
+        <div class="form-group">
+          <label for="companyName">Company Name:</label>
+          <input
+            type="text"
+            class="form-control"
+            id="companyName"
+            name="companyName"
+            required
+          />
+          <small id="companyNameError" class="text-danger d-none"
+            >Please enter your company name.</small
+          >
+        </div>
+        <div class="form-group">
+          <label for="companySize">Company Size:</label>
+          <input
+            type="number"
+            class="form-control"
+            id="companySize"
+            name="companySize"
+            required
+          />
+          <small id="companySizeError" class="text-danger d-none"
+            >Please enter your company size.</small
+          >
+        </div>
+        <div class="form-group">
+          <label for="useCase">Use Case:</label>
+          <textarea
+            class="form-control"
+            id="useCase"
+            name="useCase"
+            rows="3"
+            required
+          ></textarea>
+          <small id="useCaseError" class="text-danger d-none"
+            >Please describe your use case.</small
+          >
+        </div>
+        <button type="submit" class="btn btn-primary" id="ctaButton">
+          Book a Demo
+        </button>
+        <div id="successMessage" class="alert alert-success mt-3 d-none">
+          Thanks for Booking, we will reach out to you shortly.
+        </div>
+      </form>
+    </div>
+
+    <script>
+      async function validateAndSubmitForm(event) {
+        event.preventDefault();
+
+        const fullName = document.getElementById("fullName").value.trim();
+        const companyName = document.getElementById("companyName").value.trim();
+        const companySize = document.getElementById("companySize").value.trim();
+        const useCase = document.getElementById("useCase").value.trim();
+        const email = document.getElementById("email").value.trim();
+
+        const fullNameError = document.getElementById("fullNameError");
+        const companyNameError = document.getElementById("companyNameError");
+        const companySizeError = document.getElementById("companySizeError");
+        const useCaseError = document.getElementById("useCaseError");
+        const emailError = document.getElementById("emailError");
+
+        fullNameError.classList.add("d-none");
+        companyNameError.classList.add("d-none");
+        companySizeError.classList.add("d-none");
+        useCaseError.classList.add("d-none");
+        emailError.classList.add("d-none");
+
+        const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+        let isValid = true;
+
+        if (!fullName) {
+          fullNameError.classList.remove("d-none");
+          isValid = false;
+        }
+        if (!companyName) {
+          companyNameError.classList.remove("d-none");
+          isValid = false;
+        }
+        if (!companySize || isNaN(companySize) || companySize <= 0) {
+          companySizeError.classList.remove("d-none");
+          isValid = false;
+        }
+        if (!useCase) {
+          useCaseError.classList.remove("d-none");
+          isValid = false;
+        }
+        if (!email || !emailPattern.test(email)) {
+          emailError.classList.remove("d-none");
+          isValid = false;
+        }
+        if (email == "test@test.com") {
+          if (companySize && !isNaN(companySize) && companySize >= 50)
+            return (window.location.href =
+              "https://calendly.com/book-demo/sales-manager");
+          else
+            return (window.location.href =
+              "https://calendly.com/book-demo/assistant-sales-manager");
+        }
+        if (!isValid) return;
+
+        try {
+          const response = await fetch(
+            "https://api.mock.apollo.com/check-profile",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ email: email }),
+            }
+          );
+          const res = await response.json();
+          if (res?.data) {
+            if (res?.data?.employee_count >= 50)
+              window.location.href =
+                "https://calendly.com/book-demo/sales-manager";
+            // For sales manager
+            else
+              window.location.href =
+                "https://calendly.com/book-demo/assistant-sales-manager"; // Assistant sales manager
+          } else {
+            sendToHubSpot(fullName, email, companyName, companySize, useCase);
+            showSuccessMessage();
+          }
+        } catch (error) {
+          console.error("Error checking user profile:", error);
+          sendToHubSpot(fullName, email, companyName, companySize, useCase);
+          showSuccessMessage();
+        }
+      }
+
+      function sendToHubSpot(
+        fullName,
+        email,
+        companyName,
+        companySize,
+        useCase
+      ) {
+        const data = {
+          fullName: fullName,
+          email: email,
+          companyName: companyName,
+          companySize: companySize,
+          useCase: useCase,
+          ip: "User IP",
+          cookies: document.cookie,
+        };
+
+        try {
+          fetch("https://api.mock.hubspot.com/forms", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(data),
+          })
+            .then((response) => {
+              if (!response.ok) {
+                alert("Failed to submit to HubSpot");
+              }
+            })
+            .catch((error) => {
+              console.error("HubSpot submission error:", error);
+            });
+        } catch (error) {
+          console.error("Unable to contact HubSpot");
+        }
+      }
+
+      function showSuccessMessage() {
+        const successMessage = document.getElementById("successMessage");
+        successMessage.classList.remove("d-none");
+        setTimeout(() => {
+          successMessage.classList.add("d-none");
+        }, 5000);
+      }
+    </script>
+  </body>
+</html>
